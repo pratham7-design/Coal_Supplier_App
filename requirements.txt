@@ -1,1 +1,3 @@
-streamline
+streamlit
+pandas
+st-gsheets-connection
