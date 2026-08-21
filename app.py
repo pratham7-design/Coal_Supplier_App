@@ -117,8 +117,8 @@ if user_role == "Buyer Portal":
                     st.error("Please fill in required fields (*).")
 
     st.divider()
-   # Update the number '919876543210' to yours
-st.markdown("[💬 Chat with Sales Manager on WhatsApp](https://wa.me/919335277466?text=Hi,%20I%20visited%20your%20Coal%20App%20and%20need%20a%20quote)")
+    # Replace 919876543210 with your actual phone number below
+    st.markdown("💬 **Direct Line:** [Chat with Sales Manager on WhatsApp](https://wa.me/919335277466?text=Hi,%20I%20visited%20your%20Coal%20App%20and%20need%20a%20quote)")
 
 # -------------------------------------------------------------
 # 2. SELLER ADMIN PANEL (Protected Updates)
@@ -148,6 +148,7 @@ elif user_role == "Seller Admin Panel":
                 
     elif pwd != "":
         st.error("Incorrect password!")
+
 
 
 
