@@ -2,88 +2,115 @@ import streamlit as st
 import pandas as pd
 
 # Page setup
-st.set_page_config(page_title="Global Coal Logistics & Supply", page_icon="🏭", layout="wide")
+st.set_page_config(page_title="Coal Supply Portal", page_icon="🏭", layout="wide")
 
-# Header Section
-st.title("🏭 Premium Industrial Coal Logistics & Wholesale Supply")
-st.caption("Supplying certified high-grade thermal, steam, and coking coal to power plants, cement factories, and industrial units.")
+# Secret Admin Password (Change "coaladmin123" to your preferred password)
+ADMIN_PASSWORD = "coaladmin123"
 
-# Quick Contact Banner
-st.info("💡 **Bulk Buyers Notice:** For orders above 5,000 MT, contact our dispatch team directly via WhatsApp for negotiated contract rates.")
+# Initialize live inventory in session memory if not already loaded
+if "inventory" not in st.session_state:
+    st.session_state.inventory = pd.DataFrame([
+        {
+            "Coal Grade": "Imported Indonesian Coal",
+            "Available Stock (Tons)": 10000,
+            "Base Rate (₹/Ton)": 6500,
+            "Location / Depot": "Vizag Port",
+            "Status": "Available"
+        },
+        {
+            "Coal Grade": "High-Calorific US Coal",
+            "Available Stock (Tons)": 5000,
+            "Base Rate (₹/Ton)": 11500,
+            "Location / Depot": "Mundra Port",
+            "Status": "Available"
+        },
+        {
+            "Coal Grade": "Domestic Steam Coal (G-10)",
+            "Available Stock (Tons)": 25000,
+            "Base Rate (₹/Ton)": 4200,
+            "Location / Depot": "Bilaspur Depot",
+            "Status": "Available"
+        }
+    ])
 
-st.divider()
+# Navigation sidebar
+st.sidebar.title("📌 Portal Navigation")
+user_role = st.sidebar.radio("Select View:", ["Buyer / Customer View", "Seller Admin Panel"])
 
-# TAB 1: Product Catalog & Lab Specs
-tab1, tab2, tab3 = st.tabs(["📦 Coal Inventory & Specs", "🧮 Price & Freight Calculator", "📝 Request Formal Quote"])
+# -------------------------------------------------------------
+# 1. BUYER / CUSTOMER VIEW
+# -------------------------------------------------------------
+if user_role == "Buyer / Customer View":
+    st.title("🏭 Premium Industrial Coal Supplier")
+    st.caption("Live Inventory, Location-based Rates, and Direct Orders")
+    st.divider()
 
-with tab1:
-    st.header("Certified Coal Stock Inventory")
+    st.header("📦 Available Live Stock & Rates")
     
-    # Dataset of Coal Products
-    coal_data = [
-        {"Grade": "Imported Indonesian Coal", "GCV (kcal/kg)": "5000 - 5800", "Ash %": "< 8%", "Moisture %": "15 - 25%", "Volatile Matter": "38 - 42%", "Target Industry": "Power Plants, Paper Mills"},
-        {"Grade": "High-Calorific US Coal", "GCV (kcal/kg)": "6700 - 7200", "Ash %": "< 10%", "Moisture %": "< 8%", "Volatile Matter": "30 - 35%", "Target Industry": "Cement, Steel Plants"},
-        {"Grade": "Domestic Steam Coal (G-10)", "GCV (kcal/kg)": "4300 - 4600", "Ash %": "20 - 24%", "Moisture %": "8 - 12%", "Volatile Matter": "25 - 30%", "Target Industry": "Brick Kilns, Textile Units"},
-        {"Grade": "Low Ash Coking Coal", "GCV (kcal/kg)": "6400 - 6800", "Ash %": "< 12%", "Moisture %": "< 5%", "Volatile Matter": "20 - 24%", "Target Industry": "Metallurgical & Steel"},
-    ]
-    
-    df = pd.DataFrame(coal_data)
-    st.dataframe(df, use_container_width=True)
-    
-    st.subheader("📄 Technical Data Sheets")
-    st.write("Download certified lab inspection reports (Certificate of Analysis) for quality assurance:")
-    st.download_button(label="Download Sample Lab Report (PDF)", data="Sample Coal Analysis Report: GCV 5800 kcal/kg, Ash 9%", file_name="Coal_Lab_Report.txt")
+    # Filter by location
+    locations = ["All"] + list(st.session_state.inventory["Location / Depot"].unique())
+    selected_loc = st.selectbox("Filter Stock by Port / Depot Location:", locations)
 
-# TAB 2: Cost Estimator
-with tab2:
-    st.header("Estimate Your Order")
-    
-    col_a, col_b = st.columns(2)
-    with col_a:
-        grade = st.selectbox("Select Coal Grade", ["Imported Indonesian Coal", "High-Calorific US Coal", "Domestic Steam Coal", "Coking Coal"])
-        tonnage = st.number_input("Required Quantity (Metric Tons)", min_value=50, max_value=50000, value=500, step=50)
-        transport = st.radio("Mode of Delivery", ["Railway Rake", "Road Transport (Trucks)", "Ex-Depot Pick Up"])
-    
-    with col_b:
-        # Base pricing estimates
-        base_prices = {"Imported Indonesian Coal": 6500, "High-Calorific US Coal": 11500, "Domestic Steam Coal": 4200, "Coking Coal": 14000}
-        
-        estimated_material_cost = base_prices[grade] * tonnage
-        freight_rate = 800 if transport == "Road Transport (Trucks)" else (500 if transport == "Railway Rake" else 0)
-        estimated_freight = freight_rate * tonnage
-        total_estimate = estimated_material_cost + estimated_freight
-        
-        st.subheader("Estimated Cost Breakdown")
-        st.metric("Material Cost Estimate", f"₹{estimated_material_cost:,.2f}")
-        st.metric("Freight Charge Estimate", f"₹{estimated_freight:,.2f}")
-        st.metric("Total Approximate Cost", f"₹{total_estimate:,.2f}")
-        st.caption("*Note: Prices vary depending on daily port rates, GST, and exact delivery location.")
+    if selected_loc != "All":
+        display_df = st.session_state.inventory[st.session_state.inventory["Location / Depot"] == selected_loc]
+    else:
+        display_df = st.session_state.inventory
 
-# TAB 3: Inquiry & Lead Generation
-with tab3:
-    st.header("Request an Official Proforma Invoice")
-    
-    with st.form("b2b_inquiry"):
+    # Show inventory table to buyers
+    st.dataframe(display_df, use_container_width=True)
+
+    st.divider()
+
+    # Direct Inquiry Form
+    st.header("📝 Request Price Quote / Order Coal")
+    with st.form("customer_order_form"):
         c1, c2 = st.columns(2)
         with c1:
-            company = st.text_input("Company Name *")
-            gst_no = st.text_input("GST / Tax Identification Number")
-            contact_person = st.text_input("Contact Person Name *")
+            company_name = st.text_input("Company / Industry Name *")
+            whatsapp_no = st.text_input("WhatsApp / Mobile Number *")
+            delivery_city = st.text_input("Delivery Location (City/State) *")
         with c2:
-            phone = st.text_input("WhatsApp / Mobile Number *")
-            email = st.text_input("Official Email Address")
-            delivery_location = st.text_input("Plant / Factory Location *")
-            
-        notes = st.text_area("Specific Requirements (e.g., Size requirement in mm, delivery timeline)")
-        
-        submit = st.form_submit_button("Submit Formal RFP")
-        
-        if submit:
-            if company and phone and delivery_location:
-                st.success("Your RFQ (Request for Quotation) has been registered. Our sales director will contact you via WhatsApp/Email within 2 business hours.")
-            else:
-                st.error("Please fill in all mandatory fields marked with (*).")
+            selected_coal = st.selectbox("Select Coal Grade", st.session_state.inventory["Coal Grade"].tolist())
+            qty_needed = st.number_input("Required Tonnage (MT)", min_value=10, step=50)
 
-# Footer
-st.divider()
-st.markdown("💬 **Direct Line:** [Chat with Sales Manager on WhatsApp](https://wa.me/919999999999?text=Hi,%20I%20visited%20your%20app%20and%20need%20a%20coal%20price%20quote)")
+        submit = st.form_submit_button("Submit Requirements")
+        if submit:
+            if company_name and whatsapp_no and delivery_city:
+                st.success(f"Thank you {company_name}! Your request for {qty_needed} MT of {selected_coal} has been sent to the supplier.")
+            else:
+                st.error("Please fill in all required fields.")
+
+    # WhatsApp Direct Button
+    st.markdown("---")
+    st.subheader("💬 Immediate Purchase?")
+    st.markdown("[Click here to Chat directly on WhatsApp](https://wa.me/91XXXXXXXXXX?text=Hi,%20I%20want%20to%20buy%20coal)")
+
+# -------------------------------------------------------------
+# 2. SELLER ADMIN PANEL (PROTECTED)
+# -------------------------------------------------------------
+elif user_role == "Seller Admin Panel":
+    st.title("🔐 Seller Admin Dashboard")
+    st.caption("Only authorized business owners can update rates and stock here.")
+    
+    # Password verification
+    password_input = st.text_input("Enter Admin Password:", type="password")
+
+    if password_input == ADMIN_PASSWORD:
+        st.success("Access Granted! You can now update stock details below.")
+        st.divider()
+
+        st.subheader("⚙️ Edit Live Stock & Rates Data")
+        st.info("Make changes directly in the table below. Values will update for buyers instantly.")
+
+        # Editable dataframe for the admin
+        updated_df = st.data_editor(st.session_state.inventory, num_rows="dynamic", use_container_width=True)
+
+        if st.button("💾 Save All Changes"):
+            st.session_state.inventory = updated_df
+            st.success("Stock and rates updated successfully!")
+            
+    elif password_input != "":
+        st.error("Incorrect password! Access denied.")
+
+
+
